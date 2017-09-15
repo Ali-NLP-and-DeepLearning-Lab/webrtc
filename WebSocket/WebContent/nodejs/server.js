@@ -29,23 +29,21 @@ var wsServer = new webSocketServer({
 
 wsServer.on('request', function (request) {
 	
-	console.log((new Date()) + ' Connection from origin ' + request.origin + '.');
+//	console.log((new Date()) + ' Connection from origin ' + request.origin + '.');
 	
 	var connection = request.accept(null, request.origin);
 	
-	console.log((new Date()) + ' Connection accepted');
+//	console.log((new Date()) + ' Connection accepted');
 	
 	connection.on('message', function (message) {
 
-		console.log(message.utf8Data);
-		console.log('\n')
 		control(message.utf8Data, connection);
 		
 	});
 	
 	connection.on('close', function (connection) {
 		
-		console.log((new Date()) + " peer" + conection.remoteAddress + "disconneted");
+		console.log((new Date()) + " peer" + connection.remoteAddress + "disconneted");
 		
 	});
 	
@@ -53,29 +51,86 @@ wsServer.on('request', function (request) {
 
 function control (data, connection)
 {
-	var messages 	= data.split('#_#');
-	var method 		= messages[1];
-	var fromID		= messages[2];
-	var toID		= messages[3];
-	var data		= messages[4];
-	sendType		= messages[0];
-	var resData		= method + '#_#' + fromID + '#_#' + toID + '#_#' + data;
+	console.log('-- Receive Data --')
+	console.log(data);
 	
+	var message = JSON.parse(data);
 	
-	if ('login' === method)
-	{
-		console.log('LOGIN - ' + fromID);
-		clients[fromID] = connection;
-		
-		sendMessage(fromID, method + '#_#' + fromID);
+	var method 		= message.method;
+	var fromID		= message.from;
+	var toID		= message.to;
+	var data		= message.message;
+	sendType		= message.type;
+	
+	var resultData	= {
+			'method' : method,
+			'from' : fromID,
+			'toID' : toID,
+			'data' : data
 	}
-	else if ('offer' === method || 'answer' === method)
+	
+	switch (method)
 	{
-		sendMessage(toID, resData);
-	}
-	else
-	{
-		sendMessage(fromID, resData);
+		case 'login':
+			clients[fromID] = {};
+			clients[fromID].roomID		= '';
+			clients[fromID].connection 	= connection; 
+			
+			resultData.data = 'login ok';
+			sendMessage(fromID, JSON.stringify(resultData));
+			break;
+		case 'logout':
+			resultData.data = 'logout ok';
+			sendMessage(fromID, JSON.stringify(resultData));
+			
+			delete clients[fromID];
+			break;
+		case 'offer':
+		case 'answer':
+			sendMessage(toID, JSON.stringify(resultData));
+			break;
+		case 'attend':
+			var room				= JSON.parse(data);
+			resultData.method		= 'invite';
+			var attendRoomID 		= room.roomID;
+			
+			clients[fromID].roomID 	= attendRoomID;
+			
+			for (var key in clients)
+			{
+				if (key == fromID)
+					continue;
+				
+				if (clients[key].roomID == attendRoomID)
+				{
+					sendMessage(key, JSON.stringify(resultData));
+				}
+			}
+			break;
+		case 'exit':
+			var room				= JSON.parse(data);
+			var attendRoomID 		= room.roomID;
+			
+			for (var key in clients)
+			{
+				console.log('fromID : ' + fromID + ' / key : ' + key + ' key room ID : ' + clients[key].roomID);
+				
+				if (key == fromID)
+					continue;
+				
+				if (clients[key].roomID == attendRoomID)
+				{
+					sendMessage(key, JSON.stringify(resultData));
+				}
+			}
+			
+			clients[fromID].roomID = '';
+			
+			console.log(clients);
+			break;
+		default:
+			sendMessage(fromID, JSON.stringify(resultData));
+			break;
 	}
 	
 }
@@ -95,11 +150,14 @@ function sendBoardCastMessage(id, data)
 		if (key == id)
 			continue;
 		
-		clients[key].sendUTF(data);
+		clients[key].connection.sendUTF(data);
 	}
 }
 
 function sendSingleMessage(id, data)
 {
-	clients[id].sendUTF(data);
+	console.log('-- Send Data --')
+	console.log('to : ' + id + '   data : ' + data);
+	
+	clients[id].connection.sendUTF(data);
 }
