@@ -40,7 +40,14 @@ function JWebRtc (manager, id) {
 		
 		channel.onopen = function (event) {
 			console.log('%c DATA CHANNEL OPEN', 'color:#000066');
-		}
+		};
+		
+		channel.onbufferedamountlow = function (evt) {
+			
+			console.log('onbufferedamountlow');
+			console.log(evt);
+			
+		};
 		
 		channel.onmessage = function (evt) {
 			
