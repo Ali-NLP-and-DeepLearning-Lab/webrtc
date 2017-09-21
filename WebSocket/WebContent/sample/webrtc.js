@@ -13,6 +13,17 @@ var signalingChannel = new WebSocket("wss://127.0.0.1:1337");
 var localStream = null;
 var loginID = '';
 
+<<<<<<< HEAD
+=======
+var ICE_CANDIDATE = 'icecandidate';
+var OFFER = 'offer';
+var ANSWER = 'answer';
+var LOGIN = 'login';
+
+var BOARDCAST = 'boardcast';
+var SINGLE = 'single';
+
+>>>>>>> branch 'master' of https://github.com/YounHyunJun/webrtc.git
 var DATA_CHANNEL = 'dataChannel'; 
 
 function makeVideo(id) {
