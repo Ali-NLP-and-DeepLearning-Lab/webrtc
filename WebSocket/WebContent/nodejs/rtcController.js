@@ -1,6 +1,6 @@
 module.exports = function () {
 	
-	var _connecitonList = {};
+	var _connectionList = {};
 	
 	var _packetID,
 		_method,
@@ -15,7 +15,8 @@ module.exports = function () {
 		METHOD_ANSWER = 'answer',
 		METHOD_ATTEND = 'attend',
 		METHOD_ICE_CANDIDATE = 'icecandidate',
-		METHOD_EXIT = 'exit';
+		METHOD_EXIT = 'exit',
+		METHOD_INVITE = 'invite';
 	
 	var _init,
 		_invoke,
@@ -78,7 +79,7 @@ module.exports = function () {
 	
 	_login = function (connection) {
 		
-		_connecitonList[_senderID] = _getConnectionData(connection);
+		_connectionList[_senderID] = _getConnectionData(connection);
 		var responseMessage = _getResponseData(true);
 		_sendMessage(_senderID, JSON.stringify(responseMessage));
 	};
@@ -87,16 +88,18 @@ module.exports = function () {
 		
 		var responseMessage = _getResponseData(true);
 		
-		delete _connecitonList[_senderID];
-		
 		_sendMessage(_senderID, JSON.stringify(responseMessage));
+		
+		delete _connectionList[_senderID];
 		
 	};
 	
 	_sendReceiver = function (requestData) {
 		
 		var responseMessage = _getEventData(true);
+		responseMessage.message = requestData;
 		_sendMessage(_receiverID, JSON.stringify(responseMessage));
+		
 	};
 	
 	_attend = function (requestData) {
@@ -105,24 +108,33 @@ module.exports = function () {
 		var eventMessage = _getEventData(true);
 		var responseMessage = _getResponseData(true);
 		
-		_sendMessage(_senderID, JSON.stringify(eventMessage));
-		_sendRoomBoardCast(roomID, JSON.stringify(responseMessage));
+		_connectionList[_senderID].roomID = roomID;
+		responseMessage.roomID = roomID;
+		eventMessage.method = METHOD_INVITE;
+		
+		_sendMessage(_senderID, JSON.stringify(responseMessage));
+		_sendRoomBoardCast(roomID, JSON.stringify(eventMessage));
 		
 	};
 	
 	_iceCandidate = function (requestData) {
-		var eventMessage = _getEventMessage(true);
-		sendMessage(_receiverID, JSON.stringify(eventData));
+		var eventMessage = _getEventData(true);
+		eventMessage.message = requestData;
+		_sendMessage(_receiverID, JSON.stringify(eventMessage));
 	};
 	
 	_exit = function (requestData) {
 		
 		var roomID = requestData.roomID;
 		var eventMessage = _getEventData(true);
+		var responseMessage = _getResponseData(true);
 		
-		_sendRoomBoardCast(roomID, eventMessage);
+		responseMessage.roomID = roomID;
 		
-		_connecitonList[senderID].roomID = '';
+		_sendMessage(_senderID, JSON.stringify(responseMessage));
+		_sendRoomBoardCast(roomID, JSON.stringify(eventMessage));
+		
+		_connectionList[_senderID].roomID = '';
 	};
 	
 	_getConnectionData = function (connection) {
@@ -140,13 +152,14 @@ module.exports = function () {
 		var result;
 		
 		if (isSuccess)
-			result = true;
+			result = 'success';
 		else
-			result = false;
+			result = 'fail';
 		
 		return {
 			type : 'event',
 			result : result,
+			method : _method,
 			senderID : _senderID,
 			receiverID : _receiverID,
 			message : ''
@@ -159,9 +172,9 @@ module.exports = function () {
 		var result;
 		
 		if (isSuccess)
-			result = true;
+			result = 'success';
 		else
-			result = false;
+			result = 'fail';
 		
 		return {
 			type : 'response',
@@ -176,20 +189,20 @@ module.exports = function () {
 	};
 	
 	_sendMessage = function (id, message) {
-		_connecitonList[id].connection.sendUTF(message);
+		console.log('id -> ' + id + ' -> message ' + message);
+		_connectionList[id].connection.sendUTF(message);
 	};
 	
 	_sendRoomBoardCast = function (roomID, message) {
 		
-		for (var connectedID in _connecitonList)
+		for (var connectedID in _connectionList)
 		{
 			if (connectedID == _senderID)
 				continue;
 			
-			if (clients[connectedID].roomID == roomID)
+			if (_connectionList[connectedID].roomID == roomID)
 			{
-				eventData.receiver	= key;
-				sendMessage(key, JSON.stringify(eventData));
+				_sendMessage(connectedID, message);
 			}
 		}
 	};

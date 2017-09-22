@@ -29,8 +29,8 @@ JSignalingEventHandler.prototype.invoke = function (responseData) {
 
 JSignalingEventHandler.prototype.iceCandidateEvent = function (responseData) {
 	
-	var iceData = responseData.data;
-	var peerID = iceData.senderID;
+	var iceData = responseData.message;
+	var peerID = responseData.senderID;
 
 	console.log('%c SERVER RECEIVED -> ICE CANDIDATE :: %c SENDER ID[' + peerID + ']', 'color:#9900CC','color:#444444');
 	
@@ -45,28 +45,24 @@ JSignalingEventHandler.prototype.iceCandidateEvent = function (responseData) {
 
 JSignalingEventHandler.prototype.offerEvent = function (responseData) {
 	
-	var sdpData = responseData.data;
-	var peerID = sdpData.senderID;
+	var peerID = responseData.senderID;
 	
-	document.getElementById('logArea').value += 'FROM SERVER : SDP OFFER Receive \n';
 	console.log('%c SERVER RECEIVED -> OFFER :: %c SENDER ID[' + peerID + ']', 'color:#FF9900','color:#444444');
 	
 	this.jWebRtcManager.makeVideo(peerID, this.jWebRtcManager.getPeerVideoElement());
 	this.jWebRtcManager.createChannel(peerID);
-	this.jWebRtcManager.setRemoteDescription(peerID, sdpData.data);
+	this.jWebRtcManager.setRemoteDescription(peerID, responseData.message);
 	this.jWebRtcManager.sendAnswer(peerID);
 	
 }
 
 JSignalingEventHandler.prototype.answerEvent = function (responseData) {
 	
-	var sdpData 	= responseData.data;
-	var peerID		= sdpData.senderID;
+	var peerID		= responseData.senderID;
 	
-	document.getElementById('logArea').value += 'FROM SERVER : SDP ANSWER Receive \n';
 	console.log('%c SERVER RECEIVED -> ANSWER :: %c SENDER ID[' + peerID + ']', 'color:#FF9900','color:#444444');
 	
-	this.jWebRtcManager.setRemoteDescription(peerID, sdpData.data);
+	this.jWebRtcManager.setRemoteDescription(peerID, responseData.message);
 	
 }
 
@@ -74,7 +70,6 @@ JSignalingEventHandler.prototype.inviteEvent = function (responseData) {
 	
 	var id		= responseData.senderID;
 	
-	document.getElementById('logArea').value += 'SERVER FROM : INVITE \n';
 	console.log('%c SERVER RECEIVED -> INVITE :: %c CALLER ID[' + id + ']', 'color:#FF9900','color:#444444');
 	
 	this.jWebRtcManager.makeVideo(id, this.jWebRtcManager.getPeerVideoElement());
@@ -87,7 +82,7 @@ JSignalingEventHandler.prototype.exitEvent = function (responseData) {
 	
 	var peerID = responseData.senderID;
 	
-	document.getElementById('logArea').value += 'SERVER FROM : EXIT - ' + peerID + '\n';
+	console.log('%c SERVER RECEIVED -> EXIT :: %c USER ID [' + peerID + ']', 'color:#FF9900','color:#444444');
 	
 	this.jWebRtcManager.destroyChannelList();
 	

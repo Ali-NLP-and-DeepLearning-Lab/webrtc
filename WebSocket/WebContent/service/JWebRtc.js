@@ -1,27 +1,27 @@
 function JWebRtc (manager, id) {
 	
-	var DATA_CHANNEL = 'dataChannel';
+	var _this = this;
 	
 	this.manager = manager;
 	this.userId = id;
+	this.dataChannel = {};
 	
 	this.rtcChannel = new RTCPeerConnection(manager.config, manager.pcConfig);
-	this.dataChannel = this.rtcChannel.createDataChannel(DATA_CHANNEL);
+	this.dataChannel[manager.CHAT_CHANNEL] = this.rtcChannel.createDataChannel(manager.CHAT_CHANNEL);
+	this.dataChannel[manager.FILE_CHANNEL] = this.rtcChannel.createDataChannel(manager.FILE_CHANNEL);
+	this.dataChannel[manager.FILE_CHANNEL].binaryType = 'arraybuffer';
+	this.dataChannel[manager.FILE_SIGNAL_CHANNEL] = this.rtcChannel.createDataChannel(manager.FILE_SIGNAL_CHANNEL);
 	
 	this.rtcChannel.addStream(manager.localStream);
 	this.rtcChannel.onicecandidate = function (evt) {
 		console.log('%c LOCAL -> CREATE : ICE CANDIDATE', 'color:#FF00CC');
 		console.log('%c SERVER SEND -> ICE CANDIDATE', 'color:#FF00CC')
 		
-		console.log(evt);
-		
 		var	requestData = {
 			candidate : evt.candidate,
-			senderID : manager.loginID,
-			receiverID : id
 		}
 			
-		manager.sendMessage(manager.ICE_CANDIDATE, requestData);
+		manager.sendMessage(manager.ICE_CANDIDATE, requestData, id);
 	};
 	
 	this.rtcChannel.onaddstream = function (event) {
@@ -38,33 +38,20 @@ function JWebRtc (manager, id) {
 		
 		var channel = event.channel;
 		
+		if (channel.label === 'fileChannel')
+			channel.binaryType = 'arraybuffer';
+		
 		channel.onopen = function (event) {
-			console.log('%c DATA CHANNEL OPEN', 'color:#000066');
+			console.log('%c DATA CHANNEL OPEN : ' + channel.label, 'color:#000066');
 		};
 		
 		channel.onbufferedamountlow = function (evt) {
-			
-			console.log('onbufferedamountlow');
+			console.log('%c DATA BUFFERED MOUNTLOW : ' + channel.label);
 			console.log(evt);
-			
 		};
 		
 		channel.onmessage = function (evt) {
-			
-			var result;
-			
-			try
-			{
-				result = JSON.parse(evt.data);
-			}
-			catch (parseError)
-			{
-				console.info(e);
-				console.err(parseError);
-				alert('SOCKET ON MESSAGE ERROR (JSON Parse)');
-			}
-			
-			manager.dataChannelEventHandler.invoke(result)
+			manager.dataChannelEventHandler.invoke(evt)
 		};
 	};
 	
@@ -78,20 +65,14 @@ JWebRtc.prototype.sendOffer = function (id) {
 		console.log('%c LOCAL -> CREATE : OFFER', 'color:#FF9900');
 		console.log('%c LOCAL -> SET : LOCAL DESCRIPTION', 'color:#FF9900');
 		
-		console.log(offer);
-		
 		_this.rtcChannel.setLocalDescription(offer);
 	})
 	.then(function () {
 		
-		var requestData = {
-			data : _this.rtcChannel.localDescription,
-			senderID : _this.manager.loginID,
-			receiverID : id
-		}
+		var requestData = _this.rtcChannel.localDescription;
 		
 		console.log('%c SERVER SEND -> OFFER', 'color:#FF9900');
-		_this.manager.sendMessage(_this.manager.OFFER, requestData);
+		_this.manager.sendMessage(_this.manager.OFFER, requestData, id);
 	}).catch(function (error) {
 		alert(error);
 	});
@@ -108,14 +89,10 @@ JWebRtc.prototype.sendAnswer = function (id) {
 		return _this.rtcChannel.setLocalDescription(answer);
 	}).then(function () {
 		
-		var requestData = {
-			data : _this.rtcChannel.localDescription,
-			senderID :  _this.manager.loginID,
-			receiverID : id
-		}
+		var requestData = _this.rtcChannel.localDescription;
 		
 		console.log('%c SERVER SEND -> ANSWER', 'color:#FF9900');
-		_this.manager.sendMessage(_this.manager.ANSWER, requestData);
+		_this.manager.sendMessage(_this.manager.ANSWER, requestData, id);
 		
 	}).catch(function (error) {
 		alert(error);

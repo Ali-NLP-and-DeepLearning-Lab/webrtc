@@ -15,9 +15,18 @@
 		<button id="exit" onclick="exit()" disabled>나가기</button>		
 	</div>
 	<div>
-		<input id="file" type="file"/>
-		<button onclick="sendFile()">파일전송</button>
-		<img src="" id="resultIMG">
+		<div>
+			<input id="file" type="file"/>
+			<button onclick="sendFile()">파일전송</button>
+		</div>
+		<div>
+			<div>
+				SEND : <progress id="sendProgress" max="0" value="0"></progress>
+			</div>
+			<div>
+				RECEIVE : <progress id="receiveProgress" max="0" value="0"></progress>
+			</div>
+		</div>
 	</div>
 	<div style="clear: both;">
 		<div style="float:left; margin-right: 40px;">

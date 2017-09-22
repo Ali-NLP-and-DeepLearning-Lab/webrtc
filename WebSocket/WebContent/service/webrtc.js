@@ -35,12 +35,18 @@ function login () {
 }
 
 function logout () {
-	exit();
-	sendMessage(SINGLE, LOGOUT, loginID, null, null);
+	
+	manager.exit();
+	
+	var logoutCallback = function (result) {
+		document.getElementById('logArea').value += 'LOG OUT ' + result.result + '  : ' + loginID + '\n';	
+	}	 
+	
+	manager.logout(loginID, logoutCallback);
+	
 	document.getElementById('login').disabled = false;
 	document.getElementById('logout').disabled = true;
 	
-	document.getElementById('logArea').value += 'LOGOUT : ' + loginID;
 }
 
 function attend () {
@@ -61,9 +67,11 @@ function attend () {
 
 function exit () {
 	
-	document.getElementById('logArea').value += 'EXIT : ' + roomID;
+	var  exitCallback = function (result) {
+		document.getElementById('logArea').value += 'EXIT ' + result.roomID + ' ' + result.result + ' : ' + loginID + '\n';
+	}
 	
-	manager.exit(roomID);
+	manager.exit(exitCallback);
 	
 	var videoElements = document.getElementsByTagName('video');
 	
@@ -105,10 +113,16 @@ function guid() {
 
 function sendFile() {
 	
+	var sendProgressElement = document.getElementById('sendProgress');
 	var fileElement = document.getElementById('file');
 	var file = fileElement.files[0];
 	
-	manager.sendFile(file);
+	var fileCallback = function (result) {
+		document.getElementById('logArea').value += 'FILE SEND FINISHED : ' + result + '\n';
+		fileElement.value = '';
+	}
+	
+	manager.sendFile(file, sendProgressElement, fileCallback);
 	
 }
 

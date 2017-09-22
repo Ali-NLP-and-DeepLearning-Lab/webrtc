@@ -10,10 +10,14 @@ function JWebRtcManager (config, pcConfig, sdpConfig) {
 	this.ANSWER = 'answer';
 	this.ICE_CANDIDATE = 'icecandidate';
 	
+	this.CHAT_CHANNEL = 'chatChannel';
+	this.FILE_CHANNEL = 'fileChannel';
+	this.FILE_SIGNAL_CHANNEL = 'fileSignalChannel';
+	
 	this.SELF_VIDEO_ID = 'self';
 	
-	this.loginID;
-	this.roomID;
+	this.loginID = '';
+	this.roomID = '';
 	this.selfVideoElement;
 	this.peerVideoElements = new Array();
 	
@@ -23,7 +27,7 @@ function JWebRtcManager (config, pcConfig, sdpConfig) {
 	this.channelList = {};
 	this.localStream = {};
 	this.signalingChannel = new SignalingChannel(this);
-	this.dataChannelEventHandler = new JDataChannelEventHandler();
+	this.dataChannelEventHandler = new JDataChannelEventHandler(this);
 	this.signalingEventHandler = new JSignalingEventHandler(this);
 	
 }
@@ -93,16 +97,12 @@ JWebRtcManager.prototype.createChannel = function (id) {
 
 JWebRtcManager.prototype.sendOffer = function (id) {
 	
-	document.getElementById('logArea').value += 'EXECUTE CREATE OFFER : ' + id + '\n';
-	
 	this.channelList[id].sendOffer(id);
 	
 	
 };
 
 JWebRtcManager.prototype.sendAnswer = function (id) {
-	
-	document.getElementById('logArea').value += 'EXECUTE CREATE ANSWER : ' + id + '\n';
 	
 	this.channelList[id].sendAnswer(id);
 	
@@ -184,6 +184,19 @@ JWebRtcManager.prototype.login = function (loginID, callback) {
 	this.signalingChannel.send(this.LOGIN, message);
 }
 
+JWebRtcManager.prototype.logout = function (loginID, callback) {
+	
+	var message = {
+			loginID : loginID,
+			callback : callback
+	}
+	
+	this.signalingChannel.send(this.LOGOUT, message);
+	
+	this.loginID = '';
+	
+}
+
 JWebRtcManager.prototype.join = function (roomID, callback) {
 	
 	this.roomID = roomID;
@@ -196,86 +209,136 @@ JWebRtcManager.prototype.join = function (roomID, callback) {
 	this.signalingChannel.send(this.ATTEND, data);
 }
 
-JWebRtcManager.prototype.sendChat = function (dataMessage) {
-
-	var requestData		= {
-			chatMessage : dataMessage,
-			type		: 'chat'
-	}
+JWebRtcManager.prototype.exit = function (callback) {
 	
-	for (var key in this.channelList)
+	if (this.roomID === null || this.roomID.length === 0)
 	{
-		this.channelList[key].dataChannel.send(JSON.stringify(requestData));
+		console.log('no roomID');
+		return;
 	}
 	
-};
-
-
-JWebRtcManager.prototype.exit = function (roomID, callback) {
-
 	this.destroyChannelList();
 	
 	var data = {
-			roomID : roomID,
+			roomID : this.roomID,
 			callback : callback
 	};
 	
 	this.signalingChannel.send(this.EXIT, data);
+	
+	this.roomID = '';
 }
 
 JWebRtcManager.prototype.destroyChannelList = function () {
 
-	for (var key in this.channelList)
-	{
-		this.channelList[key].dataChannel.close();
+	for (var key in this.channelList) {
+		for (var type in this.channelList[key].dataChannel) {
+			this.channelList[key].dataChannel[type].close();
+		}
 		this.channelList[key].rtcChannel.close();
 		delete this.channelList[key]; 
 	}
 	
 }
 
-JWebRtcManager.prototype.sendMessage = function (method, message) {
+JWebRtcManager.prototype.sendMessage = function (method, message, receverID) {
 	
-	this.signalingChannel.send(method, message);
+	this.signalingChannel.send(method, message, receverID);
 };
 
-JWebRtcManager.prototype.sendFile = function (file) {
+JWebRtcManager.prototype.sendChat = function (dataMessage) {
+
+	var requestData		= {
+			type		: 'chat',
+			chatMessage : dataMessage
+	}
 	
-	if (file === null)
+	for (var key in this.channelList)
+	{
+		this.channelList[key].dataChannel[this.CHAT_CHANNEL].send(JSON.stringify(requestData));
+	}
+	
+};
+
+JWebRtcManager.prototype.sendFile = function (file, progressElement, callback) {
+	
+	if (file == null || file.size == 0)
 	{
 		alert('FILE IS EMPTY');
 		return;
 	}
+	var _this = this;
+	var fileBuffer = [];
+	var fileSize = 0;
+	var result = 'success';
+	
+	progressElement.max = file.size;
+	
+	var startFileMessage = {
+		type : 'file',
+		fileSize : file.size,
+		fileName : file.name,
+		state : 'start'
+	}
+	
+	for (var key in _this.channelList)
+	{
+		_this.channelList[key].dataChannel[_this.FILE_SIGNAL_CHANNEL].send(JSON.stringify(startFileMessage));
+	}
+	
+	console.log('%c LOCAL -> FILE SEND START', 'color:#000066');
 	
 	var fileWorker = new Worker("fileReader.js")
-	var _this = this;
 	
 	fileWorker.postMessage(file);
-	
-	fileWorker.onmessage = function (e) 
+	fileWorker.onmessage = function (evt) 
 	{
-		var dataMessage = {
-				type : 'file',
-				fileData : e.data,
-				fileName : file.name
+		if (typeof evt.data === 'string')
+		{
+			if (evt.data === _this.EXIT)
+			{
+				var fileListElement = document.getElementById('fileList');
+				var fileElement = document.createElement('a');
+				var received = new Blob(fileBuffer);
+				
+				fileBuffer = [];
+				
+				fileElement.href = URL.createObjectURL(received);
+				fileElement.download = file.name;
+				fileElement.innerHTML = file.name;
+				fileElement.style.display = 'block';
+				fileElement.style.height = '26px';
+				fileElement.target = '_blank';
+				
+				fileListElement.appendChild(fileElement);
+				
+				var endFileMessage = {
+						type : 'file',
+						fileSize : file.size,
+						fileName : file.name,
+						state : 'end'
+					}
+				
+				progressElement.value = 0;
+				console.log('%c LOCAL -> FILE SEND END', 'color:#000066');
+				callback(result);
+				fileWorker.terminate();
+				return;
+			}
 		}
 		
 		for (var key in _this.channelList)
 		{
-			_this.channelList[key].dataChannel.send(JSON.stringify(dataMessage));
+			fileBuffer.push(evt.data);
+			_this.channelList[key].dataChannel[_this.FILE_CHANNEL].send(evt.data);
+			console.log(evt.data.byteLength);
+			progressElement.value += evt.data.byteLength
 		}
 		
-		var fileListElement = document.getElementById('fileList');
-		var fileElement = document.createElement('a');
-		
-		fileElement.href = e.data;
-		fileElement.innerHTML = file.name;
-		fileElement.style.display = 'block';
-		fileElement.style.height = '26px';
-		fileElement.target = '_blank';
-		fileElement.download = file.name;
-		
-		fileListElement.appendChild(fileElement);
+	}
+	
+	fileWorker.onclose = function (evt) {
+		console.log(evt);
 	}
 	
 };
