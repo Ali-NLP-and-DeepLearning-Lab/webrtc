@@ -4,7 +4,7 @@ function SignalingChannel (manager) {
  	var EVENT = 'event';
  	
  	this.manager = manager;
- 	this.socket = new WebSocket("wss://devcloud.uprism.com:1337");
+ 	this.socket = new WebSocket("wss://127.0.0.1:1337");
  	this.packetMap = {};
  	var _this = this;
  	
