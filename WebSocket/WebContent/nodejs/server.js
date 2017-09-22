@@ -9,8 +9,8 @@ var controller = require('./rtcController.js');
 var rtcCtrl = controller();
 
 var options = {
-	key : fs.readFileSync('devcloud.uprism.com_20170524CRJP.key.pem'),
-	cert : fs.readFileSync('devcloud.uprism.com_20170524CRJP.crt.pem')
+	key : fs.readFileSync(' -- KEY -- '),
+	cert : fs.readFileSync(' -- CERT -- ')
 }
 
 var server = http.createServer (options, function (request, response) {});
