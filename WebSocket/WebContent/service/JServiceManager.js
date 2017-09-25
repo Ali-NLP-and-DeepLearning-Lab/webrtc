@@ -1,4 +1,4 @@
-function JWebRtcManager (config, pcConfig, sdpConfig) {
+function JServiceManager (option) {
 	
 	// REQUEST TYPE
 	this.LOGIN = 'login';
@@ -13,6 +13,7 @@ function JWebRtcManager (config, pcConfig, sdpConfig) {
 	this.CHAT_CHANNEL = 'chatChannel';
 	this.FILE_CHANNEL = 'fileChannel';
 	this.FILE_SIGNAL_CHANNEL = 'fileSignalChannel';
+	this.GEO_LOCATION_CHANNEL = 'geolocationChannel';
 	
 	this.SELF_VIDEO_ID = 'self';
 	
@@ -21,18 +22,20 @@ function JWebRtcManager (config, pcConfig, sdpConfig) {
 	this.selfVideoElement;
 	this.peerVideoElements = new Array();
 	
-	this.config = config;
-	this.pcConfig = pcConfig;
-	this.sdpConfig = sdpConfig;
+	this.config = option.config == null ? this.getRtcConfig() : option.config;
+	this.pcConfig = option.pcConfig == null ? this.getPeerConnectionConfig() : option.pcConfig;
+	this.sdpConfig = option.sdpConfig == null ? this.getSDPConfig() : option.sdpConfig;
 	this.channelList = {};
 	this.localStream = {};
+	this.fileManager = new FileManager(this, option.progressElement);
 	this.signalingChannel = new SignalingChannel(this);
+	this.locationManager = new LocationManager(this, option.mapElement);
 	this.dataChannelEventHandler = new JDataChannelEventHandler(this);
 	this.signalingEventHandler = new JSignalingEventHandler(this);
 	
 }
 
-JWebRtcManager.prototype.init = function (selfVideoElementId, peerVideoElementIds) {
+JServiceManager.prototype.init = function (selfVideoElementId, peerVideoElementIds) {
 	
 	if (selfVideoElementId == null || typeof selfVideoElementId !== 'string')
 	{
@@ -76,7 +79,7 @@ JWebRtcManager.prototype.init = function (selfVideoElementId, peerVideoElementId
 	this.getSelfMedia();
 };
 
-JWebRtcManager.prototype.getPeerVideoElement = function () {
+JServiceManager.prototype.getPeerVideoElement = function () {
 	
 	var peerElements = this.peerVideoElements;
 	
@@ -89,26 +92,26 @@ JWebRtcManager.prototype.getPeerVideoElement = function () {
 	
 }
 
-JWebRtcManager.prototype.createChannel = function (id) {
+JServiceManager.prototype.createChannel = function (id) {
 
 	this.channelList[id] = new JWebRtc(this, id);
 	
 };
 
-JWebRtcManager.prototype.sendOffer = function (id) {
+JServiceManager.prototype.sendOffer = function (id) {
 	
 	this.channelList[id].sendOffer(id);
 	
 	
 };
 
-JWebRtcManager.prototype.sendAnswer = function (id) {
+JServiceManager.prototype.sendAnswer = function (id) {
 	
 	this.channelList[id].sendAnswer(id);
 	
 };
 
-JWebRtcManager.prototype.getSelfMedia = function () {
+JServiceManager.prototype.getSelfMedia = function () {
 
 	var _this = this;
 	
@@ -124,7 +127,7 @@ JWebRtcManager.prototype.getSelfMedia = function () {
 	
 };
 
-JWebRtcManager.prototype.makeVideo  = function (id, parentElement) {
+JServiceManager.prototype.makeVideo  = function (id, parentElement) {
 
 	var videoElement 		= document.createElement('video');
 	
@@ -138,7 +141,7 @@ JWebRtcManager.prototype.makeVideo  = function (id, parentElement) {
 	
 }
 
-JWebRtcManager.prototype.setVideoStream = function (id, stream) {
+JServiceManager.prototype.setVideoStream = function (id, stream) {
 	
 	var videoElement 	= document.getElementById('video-' + id);
 	
@@ -153,7 +156,7 @@ JWebRtcManager.prototype.setVideoStream = function (id, stream) {
 	
 };
 
-JWebRtcManager.prototype.setRemoteDescription = function (id, sdp) {
+JServiceManager.prototype.setRemoteDescription = function (id, sdp) {
 	
 	var peerConnection = this.channelList[id].rtcChannel;
 	
@@ -162,7 +165,7 @@ JWebRtcManager.prototype.setRemoteDescription = function (id, sdp) {
 	peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
 }
 
-JWebRtcManager.prototype.addIceCandidateEvent = function (id, candidate) {
+JServiceManager.prototype.addIceCandidateEvent = function (id, candidate) {
 	
 	var peerConnection = this.channelList[id].rtcChannel;
 	
@@ -172,7 +175,7 @@ JWebRtcManager.prototype.addIceCandidateEvent = function (id, candidate) {
 	
 };
 
-JWebRtcManager.prototype.login = function (loginID, callback) {
+JServiceManager.prototype.login = function (loginID, callback) {
 	
 	this.loginID = loginID;
 	
@@ -184,7 +187,7 @@ JWebRtcManager.prototype.login = function (loginID, callback) {
 	this.signalingChannel.send(this.LOGIN, message);
 }
 
-JWebRtcManager.prototype.logout = function (loginID, callback) {
+JServiceManager.prototype.logout = function (loginID, callback) {
 	
 	var message = {
 			loginID : loginID,
@@ -197,7 +200,7 @@ JWebRtcManager.prototype.logout = function (loginID, callback) {
 	
 }
 
-JWebRtcManager.prototype.join = function (roomID, callback) {
+JServiceManager.prototype.join = function (roomID, callback) {
 	
 	this.roomID = roomID;
 	
@@ -209,7 +212,7 @@ JWebRtcManager.prototype.join = function (roomID, callback) {
 	this.signalingChannel.send(this.ATTEND, data);
 }
 
-JWebRtcManager.prototype.exit = function (callback) {
+JServiceManager.prototype.exit = function (callback) {
 	
 	if (this.roomID === null || this.roomID.length === 0)
 	{
@@ -229,7 +232,7 @@ JWebRtcManager.prototype.exit = function (callback) {
 	this.roomID = '';
 }
 
-JWebRtcManager.prototype.destroyChannelList = function () {
+JServiceManager.prototype.destroyChannelList = function () {
 
 	for (var key in this.channelList) {
 		for (var type in this.channelList[key].dataChannel) {
@@ -241,109 +244,50 @@ JWebRtcManager.prototype.destroyChannelList = function () {
 	
 }
 
-JWebRtcManager.prototype.sendMessage = function (method, message, receverID) {
+JServiceManager.prototype.sendSignalMessage = function (method, message, receverID) {
 	
 	this.signalingChannel.send(method, message, receverID);
 };
 
-JWebRtcManager.prototype.sendChat = function (dataMessage) {
+JServiceManager.prototype.sendChat = function (dataMessage) {
 
 	var requestData		= {
 			type		: 'chat',
 			chatMessage : dataMessage
 	}
 	
-	for (var key in this.channelList)
+	this.sendDataChannel(this.CHAT_CHANNEL, JSON.stringify(requestData));
+};
+
+JServiceManager.prototype.sendDataChannel = function (channelType, requestData) {
+	
+	for (var channelID in this.channelList)
 	{
-		this.channelList[key].dataChannel[this.CHAT_CHANNEL].send(JSON.stringify(requestData));
+		this.channelList[channelID].dataChannel[channelType].send(requestData);
 	}
 	
 };
 
-JWebRtcManager.prototype.sendFile = function (file, progressElement, callback) {
+JServiceManager.prototype.sendFile = function (file, callback) {
 	
 	if (file == null || file.size == 0)
 	{
 		alert('FILE IS EMPTY');
 		return;
 	}
-	var _this = this;
-	var fileBuffer = [];
-	var fileSize = 0;
-	var result = 'success';
 	
-	progressElement.max = file.size;
-	
-	var startFileMessage = {
-		type : 'file',
-		fileSize : file.size,
-		fileName : file.name,
-		state : 'start'
-	}
-	
-	for (var key in _this.channelList)
-	{
-		_this.channelList[key].dataChannel[_this.FILE_SIGNAL_CHANNEL].send(JSON.stringify(startFileMessage));
-	}
-	
-	console.log('%c LOCAL -> FILE SEND START', 'color:#000066');
-	
-	var fileWorker = new Worker("fileReader.js")
-	
-	fileWorker.postMessage(file);
-	fileWorker.onmessage = function (evt) 
-	{
-		if (typeof evt.data === 'string')
-		{
-			if (evt.data === _this.EXIT)
-			{
-				var fileListElement = document.getElementById('fileList');
-				var fileElement = document.createElement('a');
-				var received = new Blob(fileBuffer);
-				
-				fileBuffer = [];
-				
-				fileElement.href = URL.createObjectURL(received);
-				fileElement.download = file.name;
-				fileElement.innerHTML = file.name;
-				fileElement.style.display = 'block';
-				fileElement.style.height = '26px';
-				fileElement.target = '_blank';
-				
-				fileListElement.appendChild(fileElement);
-				
-				var endFileMessage = {
-						type : 'file',
-						fileSize : file.size,
-						fileName : file.name,
-						state : 'end'
-					}
-				
-				progressElement.value = 0;
-				console.log('%c LOCAL -> FILE SEND END', 'color:#000066');
-				callback(result);
-				fileWorker.terminate();
-				return;
-			}
-		}
-		
-		for (var key in _this.channelList)
-		{
-			fileBuffer.push(evt.data);
-			_this.channelList[key].dataChannel[_this.FILE_CHANNEL].send(evt.data);
-			console.log(evt.data.byteLength);
-			progressElement.value += evt.data.byteLength
-		}
-		
-	}
-	
-	fileWorker.onclose = function (evt) {
-		console.log(evt);
-	}
-	
+	this.fileManager.sendFile(file, callback);
 };
 
-SignalingChannel.prototype.guid = function guid() {
+JServiceManager.prototype.setMyLocation = function () {
+	this.locationManager.setMyLocation();
+}
+
+JServiceManager.prototype.shareLocation = function () {
+	this.locationManager.shareLocation();
+}
+
+JServiceManager.prototype.guid = function guid() {
 	  function s4() {
 	    return Math.floor((1 + Math.random()) * 0x10000)
 	      .toString(16)
@@ -352,3 +296,28 @@ SignalingChannel.prototype.guid = function guid() {
 	  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
 	    s4() + '-' + s4() + s4() + s4();
 	}
+
+JServiceManager.prototype.getRtcConfig = function () {
+
+	return 	{
+		'iceServers' : [{urls:'stun:stun1.l.google.com:19302'},
+			{
+				urls: 'turn:192.158.29.39:3478?transport=udp',
+				credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+				username: '28224511:1379330808'
+			}]
+	};
+	
+}
+
+JServiceManager.prototype.getPeerConnectionConfig = function () {
+	
+	return {'optional': [{'dtlsSrtpKeyAgreement': true}, {'rtpDataChannels': true}, {'googIPv6':false}]};
+	
+}
+
+JServiceManager.prototype.getSDPConfig = function () {
+	
+	return {'mozDontOfferDataChannel': true, 'offerToReceiveAudio':true, 'offerToReceiveVideo':true};
+	
+}

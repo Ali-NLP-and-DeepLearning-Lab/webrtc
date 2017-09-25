@@ -1,6 +1,6 @@
-function JDataChannelEventHandler (manager) {
+function JDataChannelEventHandler (serviceManager) {
 	
-	this.manager = manager;
+	this.serviceManager = serviceManager;
 	
 	this.CHATTING = 'chat';
 	this.FILE = 'file';
@@ -20,7 +20,7 @@ function JDataChannelEventHandler (manager) {
 JDataChannelEventHandler.prototype.invoke = function (event) {
 	
 	switch (event.target.label) {
-		case this.manager.CHAT_CHANNEL:
+		case this.serviceManager.CHAT_CHANNEL:
 			
 			var eventData = JSON.parse(event.data); 
 			
@@ -30,7 +30,7 @@ JDataChannelEventHandler.prototype.invoke = function (event) {
 			chatAreaElement.innerHTML += eventData.chatMessage + '\n';
 			
 			break;
-		case this.manager.FILE_CHANNEL:
+		case this.serviceManager.FILE_CHANNEL:
 			
 			var fileListElement = document.getElementById('fileList');
 			var fileElement = document.createElement('a');
@@ -59,7 +59,7 @@ JDataChannelEventHandler.prototype.invoke = function (event) {
 			
 			fileListElement.appendChild(fileElement);
 			break;
-		case this.manager.FILE_SIGNAL_CHANNEL:
+		case this.serviceManager.FILE_SIGNAL_CHANNEL:
 			
 			var eventData = JSON.parse(event.data);
 			
@@ -70,10 +70,18 @@ JDataChannelEventHandler.prototype.invoke = function (event) {
 				this.receivedFileSize = eventData.fileSize;
 				this.receiveProgressElement.max = eventData.fileSize;
 			}
+			break;
+		case this.serviceManager.GEO_LOCATION_CHANNEL:
+			
+			var eventData = JSON.parse(event.data);
+			
+			var locationManager = this.serviceManager.locationManager;
+			
+			locationManager.showLocation(eventData);
 			
 			break;
-	default:
-		break;
+		default:
+			break;
 	}
 	
 }

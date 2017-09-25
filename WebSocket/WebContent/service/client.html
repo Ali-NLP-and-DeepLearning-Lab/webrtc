@@ -16,15 +16,31 @@
 	</div>
 	<div>
 		<div>
-			<input id="file" type="file"/>
-			<button onclick="sendFile()">파일전송</button>
+			<div id="map" style="width:600px;height:250px;background-color: grey"></div>
+		</div>	
+	</div>
+	<div>
+		<div>
+			<div>
+				<input id="file" type="file"/>
+				<button onclick="sendFile()">파일전송</button>
+			</div>
+			<div>
+				<div>
+					<span style="display:inline-block;width:100px;">SEND : </span><progress id="sendProgress" max="0" value="0"></progress>
+				</div>
+				<div>
+					<span style="display:inline-block;width:100px;">RECEIVE : </span><progress id="receiveProgress" max="0" value="0"></progress>
+				</div>
+			</div>
 		</div>
 		<div>
 			<div>
-				SEND : <progress id="sendProgress" max="0" value="0"></progress>
+				파일목록
 			</div>
 			<div>
-				RECEIVE : <progress id="receiveProgress" max="0" value="0"></progress>
+				<div id="fileList" style="width:400px; height:130px; overflow: scroll; border: 1px solid black;">
+				</div>
 			</div>
 		</div>
 	</div>
@@ -34,10 +50,10 @@
 				채팅
 			</div>
 			<div>
-				<textarea id="chatArea" style="width:200px;height:120px;margin-right: 15px;resize: none;overflow: scroll; background-color: white;" disabled></textarea>
+				<textarea id="chatArea" style="width:400px;height:120px;margin-right: 15px;resize: none;overflow: scroll; background-color: white;" disabled></textarea>
 			</div>
 			<div>
-				<input type="text" id="chat" style="margin-right: 10px;"><button id="sendChat" onclick="sendChat()" disabled>보내기</button>
+				<input type="text" id="chat" widht="200px;" style="margin-right: 10px;"><button id="sendChat" onclick="sendChat()" disabled>보내기</button>
 			</div>
 		</div>
 		<div style="float:left;">
@@ -45,16 +61,7 @@
 				로그
 			</div>
 			<div>
-				<textarea id="logArea" style="width:500px;height:120px;background-color: white;resize: none;overflow: scroll;margin-right: 15px;" disabled></textarea>
-			</div>
-		</div>
-		<div>
-			<div>
-				파일목록
-			</div>
-			<div>
-				<div id="fileList" style="width:200px; height:120px; overflow: scroll; border: 1px solid black;">
-				</div>
+				<textarea id="logArea" style="width:400px;height:120px;background-color: white;resize: none;overflow: scroll;margin-right: 15px;" disabled></textarea>
 			</div>
 		</div>
 	</div>
@@ -68,11 +75,15 @@
 	<div id="peerVideo3" style="width:20px;height:20px;"></div>
 </div>
 <script type="text/javascript" src="JWebRtc.js"></script>
+<script type="text/javascript" src="FileManager.js"></script>
+<script type="text/javascript" src="LocationManager.js"></script>
 <script type="text/javascript" src="JDataChannelEventHandler.js"></script>
 <script type="text/javascript" src="JSignalingEventHandler.js"></script>
 <script type="text/javascript" src="SignalingChannel.js"></script>
-<script type="text/javascript" src="JWebRtcManager.js"></script>
+<script type="text/javascript" src="JServiceManager.js"></script>
 <script type="text/javascript" src="webrtc.js"></script>
+<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyABQegBlW-Q8n3xzmU7ijyq5O_bG1Ni3rs" async defer></script>
 </body>
 </html>
 

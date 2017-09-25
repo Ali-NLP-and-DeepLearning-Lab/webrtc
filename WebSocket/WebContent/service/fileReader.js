@@ -2,6 +2,7 @@
 	
 	var file = e.data;
 	var chunkSize = 16384;
+	var _EXIT = 'exit';
 	
 	var sliceFile = function (offset) {
 		
@@ -11,12 +12,12 @@
 			postMessage(e.target.result);
 			
 			if (file.size > offset + e.target.result.byteLength) {
-				setTimeout(sliceFile, 0, offset + chunkSize);
+				setTimeout(sliceFile, 5, offset + chunkSize);
 			}
 			else
 			{
 				console.log('%c FILE READER -> FILE LOAD END', 'color:#000066');
-				postMessage('exit');
+				postMessage(_EXIT);
 			}
 		}
 		

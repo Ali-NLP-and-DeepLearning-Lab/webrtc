@@ -9,8 +9,10 @@ function JWebRtc (manager, id) {
 	this.rtcChannel = new RTCPeerConnection(manager.config, manager.pcConfig);
 	this.dataChannel[manager.CHAT_CHANNEL] = this.rtcChannel.createDataChannel(manager.CHAT_CHANNEL);
 	this.dataChannel[manager.FILE_CHANNEL] = this.rtcChannel.createDataChannel(manager.FILE_CHANNEL);
-	this.dataChannel[manager.FILE_CHANNEL].binaryType = 'arraybuffer';
 	this.dataChannel[manager.FILE_SIGNAL_CHANNEL] = this.rtcChannel.createDataChannel(manager.FILE_SIGNAL_CHANNEL);
+	this.dataChannel[manager.GEO_LOCATION_CHANNEL] = this.rtcChannel.createDataChannel(manager.GEO_LOCATION_CHANNEL);
+	
+	this.dataChannel[manager.FILE_CHANNEL].binaryType = 'arraybuffer';
 	
 	this.rtcChannel.addStream(manager.localStream);
 	this.rtcChannel.onicecandidate = function (evt) {
@@ -21,10 +23,12 @@ function JWebRtc (manager, id) {
 			candidate : evt.candidate,
 		}
 			
-		manager.sendMessage(manager.ICE_CANDIDATE, requestData, id);
+		manager.sendSignalMessage(manager.ICE_CANDIDATE, requestData, id);
 	};
 	
-	this.rtcChannel.onaddstream = function (event) {
+	this.rtcChannel.onaddstream 
+	
+	= function (event) {
 		console.log('%c SERVER RECEIVED -> STREAM', 'color:#0066FF');
 		manager.setVideoStream(id, event.stream); // setVideo
 	};
@@ -72,7 +76,7 @@ JWebRtc.prototype.sendOffer = function (id) {
 		var requestData = _this.rtcChannel.localDescription;
 		
 		console.log('%c SERVER SEND -> OFFER', 'color:#FF9900');
-		_this.manager.sendMessage(_this.manager.OFFER, requestData, id);
+		_this.manager.sendSignalMessage(_this.manager.OFFER, requestData, id);
 	}).catch(function (error) {
 		alert(error);
 	});
@@ -92,7 +96,7 @@ JWebRtc.prototype.sendAnswer = function (id) {
 		var requestData = _this.rtcChannel.localDescription;
 		
 		console.log('%c SERVER SEND -> ANSWER', 'color:#FF9900');
-		_this.manager.sendMessage(_this.manager.ANSWER, requestData, id);
+		_this.manager.sendSignalMessage(_this.manager.ANSWER, requestData, id);
 		
 	}).catch(function (error) {
 		alert(error);
