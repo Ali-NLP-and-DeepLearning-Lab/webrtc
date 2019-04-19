@@ -2,7 +2,7 @@ Web RTC (RealTime Communication)
 
 활용 사례 코드 정리
 
-1. Node JS
+1. Server Node JS
 2. Web Client 
 
 Node JS 는 시그널링 서버의 역할을 하며 모든 클라이언트는 Mesh 형태로 통신한다.
